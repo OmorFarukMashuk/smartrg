@@ -1,5 +1,9 @@
 package smartrg
 
+import (
+	"time"
+)
+
 type DTORequest struct {
 	DTO DTO `json:"dto"`
 }
@@ -40,4 +44,57 @@ type ActionList struct {
 	Applications interface{} `json:"applications"`
 	Scripts      []string    `json:"scripts"`
 	Services     interface{} `json:"services"`
+}
+
+type ACSDeviceStatus struct {
+	InformURL    string    `json:"ConneectionRequestURL"`
+	FirstInform  time.Time `json:"firstInform"`
+	LastInform   time.Time `json:"lastInform"`
+	MAC          string    `json:"serialNumber"`
+	Firmware     string    `json:"SoftwareVersion"`
+	SubscriberID int       `json:subscriberid`
+}
+
+type ACSSubscriber struct {
+	Document struct {
+		Subscriber struct {
+			FullName string `json:"FullName,omitempty"`
+			Email    string `json:"EmailAddress,omitempty"`
+		}
+	} `json:"dto,omitempty"`
+	Revision       interface{} `json:"revision,omitempty"`
+	Subscriptions  []string    `json:"subscriptions"`
+	Labels         []ACSLabel  `json:"labels"`
+	SubscriberCode int         `json:"subscriberId,omitempty"`
+	Credentials    struct {
+		Login    string `json:"login,omitempty"`
+		Password string `json:"password,omitempty"`
+	} `json:"credentials"`
+	Accountcode string `json:"code"`
+}
+
+type ACSDevice struct {
+	Accountcode   string                 `json:"subscriberCode"`
+	MAC           string                 `json:"sn"`
+	OUI           string                 `json:"oui"`
+	ActionLog     []string               `json:"actionLog"`
+	Labels        []ACSLabel             `json:"labels"`
+	Applications  map[string]interface{} `json:"applications"`
+	QueuedActions map[string]interface{} `json:"queuedActions"`
+	DeviceID      int                    `json:"deviceid"`
+	Disposition   string                 `json:"disposition"`
+}
+
+type ACSLabel struct {
+	Name     string `json:"name"`
+	FGColour string `json:"fgcolor"`
+	BGColour string `json:"bgcolor"`
+}
+
+type ErrorMessage struct {
+	Message string `json:"message,omitempty"`
+	Code    string `json:"code,omitempty"`
+}
+
+type ACSResponse struct {
 }

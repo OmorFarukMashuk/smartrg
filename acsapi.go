@@ -12,7 +12,7 @@ import (
 	//"sync"
 	"fmt"
 	"strings"
-	"telmax"
+	//	"telmax"
 	"time"
 )
 
@@ -110,34 +110,14 @@ func sendData(method string, request string, data interface{}) (result []byte, e
 	return
 }
 
-func NewSubscriber(acct telmax.Account) (code int, err error) {
-	acsAcct := ACSSubscriber{
-		Labels: []ACSLabel{
-			ACSLabel{
-				Name:     acct.AccountType,
-				FGColour: "#000",
-				BGColour: "#fff",
-			},
-		},
-		Subscriptions: []string{},
-
-		Accountcode: acct.AccountCode,
-	}
-	acsAcct.Document.Subscriber.Email = acct.Email
-	if acct.CompanyName != "" {
-		acsAcct.Document.Subscriber.FullName = acct.CompanyName
-	} else {
-		acsAcct.Document.Subscriber.FullName = acct.FullName
-	}
-	acsAcct.Credentials.Login = acct.Email
-	acsAcct.Credentials.Password = "Telmax@5*"
+func NewSubscriber(acct ACSSubscriber) (code int, err error) {
 
 	//	var templateResult []byte
 	//	templateResult, err = getData("api/v2/templates/acctcriber")
 	//	err = json.Unmarshal(templateResult, &acsAcct)
 
 	var createResult []byte
-	createResult, err = sendData(http.MethodPost, "api/v2/subscribers", acsAcct)
+	createResult, err = sendData(http.MethodPost, "api/v2/subscribers", acct)
 	log.Debug(string(createResult))
 	var errorMessage []ErrorMessage
 	errorError := json.Unmarshal(createResult, &errorMessage)
@@ -146,13 +126,13 @@ func NewSubscriber(acct telmax.Account) (code int, err error) {
 		err = fmt.Errorf("Problem creating account %v", errorMessage[0].Message)
 		return
 	}
-	err = json.Unmarshal(createResult, &acsAcct)
-	code = acsAcct.SubscriberCode
+	err = json.Unmarshal(createResult, &acct)
+	code = acct.SubscriberCode
 	return
 }
 
-func ModifySubscriber(acct telmax.Account) error {
-	var acsAcct ACSSubscriber
+/*
+func ModifySubscriber(acct ACSSubscriber) error {
 	fetchResult, err := getData("api/v2/subscribers/" + strconv.Itoa(acct.ACSSubscriber))
 	log.Debug(string(fetchResult))
 
@@ -194,7 +174,7 @@ func ModifySubscriber(acct telmax.Account) error {
 	}
 	return err
 }
-
+*/
 func RemoveSubscriber(code int) error {
 	var errorMessage []ErrorMessage
 	deleteResult, err := deleteData("api/v1/subscribers/" + strconv.Itoa(code))
@@ -344,57 +324,4 @@ func GetDeviceStatus(code int) (status ACSDeviceStatus, err error) {
 	status.SubscriberID = deviceResult.ID
 
 	return
-}
-
-type ACSDeviceStatus struct {
-	InformURL    string    `json:"ConneectionRequestURL"`
-	FirstInform  time.Time `json:"firstInform"`
-	LastInform   time.Time `json:"lastInform"`
-	MAC          string    `json:"serialNumber"`
-	Firmware     string    `json:"SoftwareVersion"`
-	SubscriberID int       `json:subscriberid`
-}
-
-type ACSSubscriber struct {
-	Document struct {
-		Subscriber struct {
-			FullName string `json:"FullName,omitempty"`
-			Email    string `json:"EmailAddress,omitempty"`
-		}
-	} `json:"dto,omitempty"`
-	Revision       interface{} `json:"revision,omitempty"`
-	Subscriptions  []string    `json:"subscriptions"`
-	Labels         []ACSLabel  `json:"labels"`
-	SubscriberCode int         `json:"subscriberId,omitempty"`
-	Credentials    struct {
-		Login    string `json:"login,omitempty"`
-		Password string `json:"password,omitempty"`
-	} `json:"credentials"`
-	Accountcode string `json:"code"`
-}
-
-type ACSDevice struct {
-	Accountcode   string                 `json:"subscriberCode"`
-	MAC           string                 `json:"sn"`
-	OUI           string                 `json:"oui"`
-	ActionLog     []string               `json:"actionLog"`
-	Labels        []ACSLabel             `json:"labels"`
-	Applications  map[string]interface{} `json:"applications"`
-	QueuedActions map[string]interface{} `json:"queuedActions"`
-	DeviceID      int                    `json:"deviceid"`
-	Disposition   string                 `json:"disposition"`
-}
-
-type ACSLabel struct {
-	Name     string `json:"name"`
-	FGColour string `json:"fgcolor"`
-	BGColour string `json:"bgcolor"`
-}
-
-type ErrorMessage struct {
-	Message string `json:"message,omitempty"`
-	Code    string `json:"code,omitempty"`
-}
-
-type ACSResponse struct {
 }
