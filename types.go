@@ -98,3 +98,29 @@ type ErrorMessage struct {
 
 type ACSResponse struct {
 }
+
+// Device record return components
+
+type ACSDeviceRecord struct {
+	ID     string       `json:"id"`
+	DocID  string       `json:"docid"`
+	Type   string       `json:"type"`
+	Fields DeviceFields `json:"fields"`
+}
+
+type DeviceFields struct {
+	WanType        []string  `json:"wanType"`
+	Model          string    `json:"model"`
+	WanMAC         []string  `json:"wanMacAddress"`
+	Email          string    `json:"emailAddress"`
+	FullName       string    `json:"fullName"`
+	Serial         string    `json:"serialNumber"`
+	WanIPv4        []string  `json:"wanIPv4Address"`
+	LastInform     time.Time `json:"lastInform"`
+	SubscriberCode string    `json:"subscriberCode"`
+	OUI            string    `json:"oui"`
+	SubscriberID   string    `json:"subscriberId"`
+	DeviceID       string    `json:"deviceId"`
+	Manufacturer   string    `json:"manufacturer"`
+	Disposition    string    `json:"disposition"`
+}

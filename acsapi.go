@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"strings"
 	//	"telmax"
+	"errors"
 	"time"
 )
 
@@ -110,14 +111,72 @@ func sendData(method string, request string, data interface{}) (result []byte, e
 	return
 }
 
-func NewSubscriber(acct ACSSubscriber) (code int, err error) {
+func sendQuery(request string, query string) (result []byte, err error) {
+	Client := http.Client{
+		Timeout: time.Second * 4,
+	}
+	url := *APIURL + request
+	var req *http.Request
+	log.Infof("Query is %s", query)
+	req, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer([]byte(query)))
+	if err != nil {
+		log.Errorf("Problem generating HTTP request %v", err)
+		return
+	}
+	req.SetBasicAuth(*APIUser, *APIPass)
+	var response *http.Response
+	response, err = Client.Do(req)
+	if err != nil {
+		log.Errorf("Problem with HTTP request execution %v", err)
+		return
+	}
+	defer response.Body.Close()
+	result, err = ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Errorf("Problem Reading HTTP Response %v", err)
+		return
+	}
+	if response.StatusCode >= 200 && response.StatusCode <= 299 {
+		fmt.Println("HTTP Status is in the 2xx range")
+	} else {
+		fmt.Println("Argh! Broken")
+		err = errors.New(string(result))
+	}
+	return
+}
+
+func NewSubscriber(name string, email string, accountcode string, labels []string) (code int, err error) {
 
 	//	var templateResult []byte
 	//	templateResult, err = getData("api/v2/templates/acctcriber")
 	//	err = json.Unmarshal(templateResult, &acsAcct)
+	var requestJSON struct {
+		DTO           struct{} `json:"dto"`
+		Revision      string   `json:"revision,omitempty"`
+		Subscriptions []string `json:"subscriptions,nilasempty"`
+		Labels        []string `json:"labels,nilasempty"`
+		Credentials   struct {
+			//			Login    string `json:"login"`
+			//			Password string `json:"password"`
+		} `json:"credentials"`
+		Accountcode  string `json:"code"`
+		SubscriberID int    `json:"subscriberID,omitempty"`
+		Attributes   struct {
+			Email string `json:"Subscriber.EmailAddress"`
+			Name  string `json:"Subscriber.FullName"`
+		} `json:"attributes"`
+	}
+	requestJSON.Subscriptions = make([]string, 0)
+	requestJSON.Labels = make([]string, 0)
+	requestJSON.Accountcode = accountcode
+	requestJSON.Attributes.Name = name
+	requestJSON.Attributes.Email = email
+	if len(labels) > 0 {
+		requestJSON.Labels = labels
+	}
 
 	var createResult []byte
-	createResult, err = sendData(http.MethodPost, "api/v2/subscribers", acct)
+	createResult, err = sendData(http.MethodPost, "api/v2/subscribers", requestJSON)
 	log.Debug(string(createResult))
 	var errorMessage []ErrorMessage
 	errorError := json.Unmarshal(createResult, &errorMessage)
@@ -126,8 +185,20 @@ func NewSubscriber(acct ACSSubscriber) (code int, err error) {
 		err = fmt.Errorf("Problem creating account %v", errorMessage[0].Message)
 		return
 	}
-	err = json.Unmarshal(createResult, &acct)
-	code = acct.SubscriberCode
+	//var acct ACSSubscriber
+	err = json.Unmarshal(createResult, &requestJSON)
+	code = requestJSON.SubscriberID
+
+	/*
+		updateResult, err = sendData(http.MethodPut, "api/v2/subscribers/"+strconv.Itoa(code), requestJSON)
+		log.Debug(string(updateResult))
+		errorError = json.Unmarshal(createResult, &errorMessage)
+		if errorError == nil {
+			log.Errorf("Problem creating account %v", errorMessage)
+			err = fmt.Errorf("Problem creating account %v", errorMessage[0].Message)
+			return
+		}
+	*/
 	return
 }
 
@@ -268,6 +339,7 @@ func ReplaceDevice(mac string, oldid int) (code int, err error) {
 */
 
 func RemoveDevice(code int) error {
+	log.Infof("Removing device %v", code)
 	var errorMessage []ErrorMessage
 	deleteResult, err := deleteData("api/v1/devices/" + strconv.Itoa(code))
 	log.Debug(string(deleteResult))
@@ -323,5 +395,21 @@ func GetDeviceStatus(code int) (status ACSDeviceStatus, err error) {
 	status.LastInform = time.Unix(0, deviceResult.LastInform*1000000)
 	status.SubscriberID = deviceResult.ID
 
+	return
+}
+
+func GetDeviceRecord(mac string) (records []ACSDeviceRecord, err error) {
+	var result []byte
+	query := "device with sn: " + MactoUpper(mac)
+	result, err = sendQuery("portal/query/execute", query)
+	log.Infof("Result from query is %v", string(result))
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(result, &records)
+	if err != nil {
+		log.Errorf("Problem unmarshalling query %v error %v", query, err)
+	}
+	log.Info("Device records returned %v", records)
 	return
 }
