@@ -137,44 +137,46 @@ func sendQuery(request string, query string) (result []byte, err error) {
 		return
 	}
 	if response.StatusCode >= 200 && response.StatusCode <= 299 {
-		fmt.Println("HTTP Status is in the 2xx range")
+		log.Debug("HTTP Status is in the 2xx range")
 	} else {
-		fmt.Println("Argh! Broken")
 		err = errors.New(string(result))
 	}
 	return
 }
 
-func NewSubscriber(name string, email string, accountcode string, labels []string) (code int, err error) {
-
+func NewSubscriber(name string, email string, accountcode string) (code int, err error) {
+	var requestJSON ACSSubscriber
 	//	var templateResult []byte
 	//	templateResult, err = getData("api/v2/templates/acctcriber")
 	//	err = json.Unmarshal(templateResult, &acsAcct)
-	var requestJSON struct {
-		DTO           struct{} `json:"dto"`
-		Revision      string   `json:"revision,omitempty"`
-		Subscriptions []string `json:"subscriptions,nilasempty"`
-		Labels        []string `json:"labels,nilasempty"`
-		Credentials   struct {
-			//			Login    string `json:"login"`
-			//			Password string `json:"password"`
-		} `json:"credentials"`
-		Accountcode  string `json:"code"`
-		SubscriberID int    `json:"subscriberID,omitempty"`
-		Attributes   struct {
-			Email string `json:"Subscriber.EmailAddress"`
-			Name  string `json:"Subscriber.FullName"`
-		} `json:"attributes"`
-	}
-	requestJSON.Subscriptions = make([]string, 0)
-	requestJSON.Labels = make([]string, 0)
+	/*
+		var requestJSON struct {
+			DTO           struct{} `json:"dto"`
+			Revision      string   `json:"revision,omitempty"`
+			Subscriptions []string `json:"subscriptions,nilasempty"`
+			Labels        []string `json:"labels,nilasempty"`
+			Credentials   struct {
+				//			Login    string `json:"login"`
+				//			Password string `json:"password"`
+			} `json:"credentials"`
+			Accountcode  string `json:"code"`
+			SubscriberID int    `json:"subscriberID,omitempty"`
+			Attributes   struct {
+				Email string `json:"Subscriber.EmailAddress"`
+				Name  string `json:"Subscriber.FullName"`
+			} `json:"attributes"`
+		}
+	*/
+	requestJSON.Subscriptions = make([]interface{}, 0)
+	requestJSON.Labels = make([]ACSLabel, 0)
 	requestJSON.Accountcode = accountcode
 	requestJSON.Attributes.Name = name
 	requestJSON.Attributes.Email = email
-	if len(labels) > 0 {
-		requestJSON.Labels = labels
-	}
-
+	/*
+		if len(labels) > 0 {
+			requestJSON.Labels = labels
+		}
+	*/
 	var createResult []byte
 	createResult, err = sendData(http.MethodPost, "api/v2/subscribers", requestJSON)
 	log.Debug(string(createResult))
@@ -189,63 +191,39 @@ func NewSubscriber(name string, email string, accountcode string, labels []strin
 	err = json.Unmarshal(createResult, &requestJSON)
 	code = requestJSON.SubscriberID
 
-	/*
-		updateResult, err = sendData(http.MethodPut, "api/v2/subscribers/"+strconv.Itoa(code), requestJSON)
-		log.Debug(string(updateResult))
-		errorError = json.Unmarshal(createResult, &errorMessage)
-		if errorError == nil {
-			log.Errorf("Problem creating account %v", errorMessage)
-			err = fmt.Errorf("Problem creating account %v", errorMessage[0].Message)
-			return
-		}
-	*/
 	return
 }
 
-/*
-func ModifySubscriber(acct ACSSubscriber) error {
-	fetchResult, err := getData("api/v2/subscribers/" + strconv.Itoa(acct.ACSSubscriber))
+func GetSubscriber(id int) (acsAcct ACSSubscriber, err error) {
+	var fetchResult []byte
+	fetchResult, err = getData("api/current/subscribers/" + strconv.Itoa(id))
 	log.Debug(string(fetchResult))
-
 	err = json.Unmarshal(fetchResult, &acsAcct)
 	var errorMessage []ErrorMessage
 	errorError := json.Unmarshal(fetchResult, &errorMessage)
 	if errorError == nil {
 		log.Errorf("Problem fetching account %v", errorMessage)
 		err = fmt.Errorf("Problem fetching account %v", errorMessage[0].Message)
-		return err
 	}
+	return
+}
 
-	acsAcct.Labels = []ACSLabel{
-		ACSLabel{
-			Name:     acct.AccountType,
-			FGColour: "#000",
-			BGColour: "#fff",
-		},
-	}
-
-	acsAcct.Accountcode = acct.AccountCode
-	acsAcct.Document.Subscriber.Email = acct.Email
-	if acct.CompanyName != "" {
-		acsAcct.Document.Subscriber.FullName = acct.CompanyName
-	} else {
-		acsAcct.Document.Subscriber.FullName = acct.FullName
-	}
-	acsAcct.Credentials.Login = acct.Email
-	acsAcct.Credentials.Password = "Telmax@5*"
+func PutSubscriber(acsAcct ACSSubscriber) error {
 
 	var updateResult []byte
-	updateResult, err = sendData(http.MethodPut, "api/v2/subscribers/"+strconv.Itoa(acsAcct.SubscriberCode), acsAcct)
+	var err error
+	var errorMessage []ErrorMessage
+
+	updateResult, err = sendData(http.MethodPut, "api/current/subscribers/"+strconv.Itoa(acsAcct.SubscriberID), acsAcct)
 	log.Debug(string(updateResult))
-	errorError = json.Unmarshal(updateResult, &errorMessage)
+	errorError := json.Unmarshal(updateResult, &errorMessage)
 	if errorError == nil {
 		log.Errorf("Problem modifying account %v", errorMessage)
 		err = fmt.Errorf("Problem modifying account %v", errorMessage[0].Message)
-		return err
 	}
 	return err
 }
-*/
+
 func RemoveSubscriber(code int) error {
 	var errorMessage []ErrorMessage
 	deleteResult, err := deleteData("api/v1/subscribers/" + strconv.Itoa(code))
@@ -402,7 +380,7 @@ func GetDeviceRecord(mac string) (records []ACSDeviceRecord, err error) {
 	var result []byte
 	query := "device with sn: " + MactoUpper(mac)
 	result, err = sendQuery("portal/query/execute", query)
-	log.Infof("Result from query is %v", string(result))
+	log.Debugf("Result from query is %v", string(result))
 	if err != nil {
 		return
 	}

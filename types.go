@@ -56,6 +56,24 @@ type ACSDeviceStatus struct {
 }
 
 type ACSSubscriber struct {
+	DTO           struct{}      `json:"dto"`
+	Revision      interface{}   `json:"revision,omitempty"`
+	Subscriptions []interface{} `json:"subscriptions,nilasempty"`
+	Labels        []ACSLabel    `json:"labels,nilasempty"`
+	Credentials   struct {
+		//			Login    string `json:"login,omitempty`
+		//			Password string `json:"password,omitempty"`
+	} `json:"credentials"`
+	Accountcode  string `json:"code"`
+	SubscriberID int    `json:"subscriberID,omitempty"`
+	Attributes   struct {
+		Email string `json:"Subscriber.EmailAddress"`
+		Name  string `json:"Subscriber.FullName"`
+	} `json:"attributes"`
+}
+
+/*
+type ACSSubscriber struct {
 	Document struct {
 		Subscriber struct {
 			FullName string `json:"FullName,omitempty"`
@@ -72,7 +90,7 @@ type ACSSubscriber struct {
 	} `json:"credentials"`
 	Accountcode string `json:"code"`
 }
-
+*/
 type ACSDevice struct {
 	Accountcode   string                 `json:"subscriberCode"`
 	MAC           string                 `json:"sn"`
