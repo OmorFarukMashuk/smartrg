@@ -61,8 +61,9 @@ type ACSSubscriber struct {
 	Subscriptions []interface{} `json:"subscriptions,nilasempty"`
 	Labels        []ACSLabel    `json:"labels,nilasempty"`
 	Credentials   struct {
-		//			Login    string `json:"login,omitempty`
-		//			Password string `json:"password,omitempty"`
+		Login    string `json:"login,omitempty"`
+		Password string `json:"password,omitempty"`
+		Locked   bool   `json:"lockUser,omitempty"`
 	} `json:"credentials"`
 	Accountcode  string `json:"code"`
 	SubscriberID int    `json:"subscriberID,omitempty"`
